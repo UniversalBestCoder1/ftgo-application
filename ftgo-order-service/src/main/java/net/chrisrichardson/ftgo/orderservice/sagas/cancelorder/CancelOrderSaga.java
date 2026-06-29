@@ -94,7 +94,7 @@ public class CancelOrderSaga implements SimpleSaga<CancelOrderSagaData> {
 
   @Override
   public SagaDefinition<CancelOrderSagaData> getSagaDefinition() {
-    Assert.notNull(sagaDefinition);
+    Assert.notNull(sagaDefinition, "sagaDefinition");
     return sagaDefinition;
   }
 

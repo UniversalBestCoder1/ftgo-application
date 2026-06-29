@@ -6,9 +6,9 @@ apply plugin: 'org.springframework.boot'
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-gateway:$springCloudGatewayVersion"
+        mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
         mavenBom "org.springframework.cloud:spring-cloud-contract-dependencies:$springCloudContractDependenciesVersion"
-        mavenBom "org.springframework.cloud:spring-cloud-sleuth:$springCloudSleuthVersion"
     }
 }
 
@@ -19,9 +19,6 @@ configurations.all {
 repositories {
     mavenCentral()
     maven {
-        url 'http://oss.jfrog.org/oss-snapshot-local/'
-    }
-    maven {
         url "${project.rootDir}/build/repo"
     }
 }
@@ -29,24 +26,24 @@ repositories {
 
 dependencies {
 
-    compile "org.springframework.boot:spring-boot-starter-webflux"
-    compile 'org.springframework.cloud:spring-cloud-starter-gateway'
-    compile "org.apache.commons:commons-lang3:3.6"
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
+    implementation "org.springframework.boot:spring-boot-starter-validation"
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+    implementation "org.apache.commons:commons-lang3:3.6"
 
-    compile 'org.springframework.cloud:spring-cloud-starter-sleuth'
-    compile 'org.springframework.cloud:spring-cloud-starter-zipkin'
-    compile "io.zipkin.brave:brave-bom:4.17.1"
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
 
-    compile "io.micrometer:micrometer-registry-prometheus:$micrometerVersion"
-    compile "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "io.micrometer:micrometer-registry-prometheus:$micrometerVersion"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
 
-    testCompile "org.springframework.boot:spring-boot-starter-test"
-    testCompile "junit:junit:4.12"
-    testCompile "net.chrisrichardson.ftgo:ftgo-order-service-contracts:unspecified:stubs"
-    testCompile "org.springframework.cloud:spring-cloud-contract-wiremock"
-    testCompile "org.springframework.cloud:spring-cloud-starter-contract-stub-runner"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "junit:junit:4.12"
+    testImplementation "net.chrisrichardson.ftgo:ftgo-order-service-contracts:unspecified:stubs"
+    testImplementation "org.springframework.cloud:spring-cloud-contract-wiremock"
+    testImplementation "org.springframework.cloud:spring-cloud-starter-contract-stub-runner"
 
     // FIXME: gradle was downgrading: 5.0.3.RELEASE -> 5.0.0.M6
-    // testCompile "org.springframework.integration:spring-integration-core:5.0.3.RELEASE"
+    // testImplementation "org.springframework.integration:spring-integration-core:5.0.3.RELEASE"
 
 }

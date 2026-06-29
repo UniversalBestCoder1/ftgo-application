@@ -1,18 +1,21 @@
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.jsonschema2pojo.GenerationConfig
 import org.jsonschema2pojo.Jsonschema2Pojo
 import org.jsonschema2pojo.DefaultGenerationConfig
 
-class FtgoJSONSchemaToPojoCodeGen  extends DefaultTask {
+class FtgoJSONSchemaToPojoCodeGen extends DefaultTask {
 
-    FileCollection source
-    String targetPackage;
-    boolean includeAdditionalProperties;
-    boolean generateBuilders
-    boolean useLongIntegers
-    File targetDirectory
+    @InputFiles  FileCollection source
+    @Input       String targetPackage
+    @Input       boolean includeAdditionalProperties
+    @Input       boolean generateBuilders
+    @Input       boolean useLongIntegers
+    @OutputDirectory File targetDirectory
 
     @TaskAction
     def generate() {
@@ -20,7 +23,7 @@ class FtgoJSONSchemaToPojoCodeGen  extends DefaultTask {
 
             @Override
             Iterator<URL> getSource() {
-                FtgoJSONSchemaToPojoCodeGen.this.source.collect { it.toURL()}.iterator()
+                FtgoJSONSchemaToPojoCodeGen.this.source.collect { it.toURL() }.iterator()
             }
 
             @Override

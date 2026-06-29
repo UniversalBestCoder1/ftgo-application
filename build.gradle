@@ -44,6 +44,7 @@ subprojects {
 
     dependencies {
 
+        implementation(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
         implementation(platform("io.eventuate.platform:eventuate-platform-dependencies:$eventuatePlatformVersion"))
         constraints {
                 implementation ("io.netty:netty-codec-http2") {

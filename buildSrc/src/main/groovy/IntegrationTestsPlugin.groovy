@@ -7,7 +7,6 @@ class IntegrationTestsPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
 
-        project.apply(plugin: 'eclipse')
 
         project.sourceSets {
             integrationTest {
@@ -21,11 +20,9 @@ class IntegrationTestsPlugin implements Plugin<Project> {
         }
 
         project.configurations {
-            integrationTestCompile.extendsFrom testCompile
-            integrationTestRuntime.extendsFrom testRuntime
+            integrationTestImplementation.extendsFrom testImplementation
+            integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
         }
-
-        project.eclipse.classpath.plusConfigurations << project.configurations.integrationTestCompile
 
         project.task("integrationTest", type: Test) {
             testClassesDirs = project.sourceSets.integrationTest.output.classesDirs

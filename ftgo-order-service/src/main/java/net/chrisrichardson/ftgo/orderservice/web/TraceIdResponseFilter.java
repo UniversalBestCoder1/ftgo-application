@@ -1,10 +1,7 @@
 package net.chrisrichardson.ftgo.orderservice.web;
 
-
-
-import brave.Span;
-import brave.Tracer;
-import org.springframework.cloud.sleuth.instrument.web.TraceWebServletAutoConfiguration;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
@@ -17,7 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component
-@Order(TraceWebServletAutoConfiguration.TRACING_FILTER_ORDER + 1)
+@Order(Integer.MIN_VALUE + 10)
 class TraceIdResponseFilter extends GenericFilterBean {
 
   private final Tracer tracer;
@@ -26,13 +23,13 @@ class TraceIdResponseFilter extends GenericFilterBean {
     this.tracer = tracer;
   }
 
-  @Override public void doFilter(ServletRequest request, ServletResponse response,
-                                 FilterChain chain) throws IOException, ServletException {
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response,
+                       FilterChain chain) throws IOException, ServletException {
     Span currentSpan = this.tracer.currentSpan();
     if (currentSpan != null) {
       ((HttpServletResponse) response)
-              .addHeader("ZIPKIN-TRACE-ID",
-                      currentSpan.context().traceIdString());
+              .addHeader("ZIPKIN-TRACE-ID", currentSpan.context().traceId());
     }
     chain.doFilter(request, response);
   }

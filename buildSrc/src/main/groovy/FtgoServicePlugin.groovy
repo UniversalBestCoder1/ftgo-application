@@ -13,7 +13,6 @@ class FtgoServicePlugin implements Plugin<Project> {
         project.dependencyManagement {
             imports {
                 mavenBom "org.springframework.cloud:spring-cloud-contract-dependencies:${project.ext.springCloudContractDependenciesVersion}"
-                mavenBom "org.springframework.cloud:spring-cloud-sleuth:${project.ext.springCloudSleuthVersion}"
                 mavenBom "io.eventuate.platform:eventuate-platform-dependencies:${project.ext.eventuatePlatformVersion}"
             }
         }
@@ -24,12 +23,9 @@ class FtgoServicePlugin implements Plugin<Project> {
         }
 
         project.dependencies {
-            compile 'org.springframework.cloud:spring-cloud-starter-sleuth'
-            compile 'org.springframework.cloud:spring-cloud-starter-zipkin'
-            compile "io.zipkin.brave:brave-bom:4.17.1"
-
-            // Temporarily disable
-            //compile "io.eventuate.tram.core:eventuate-tram-spring-cloud-sleuth-integration"
+            // Spring Boot 3: Spring Cloud Sleuth replaced by Micrometer Tracing
+            implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+            implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
 
             implementation(platform("io.eventuate.platform:eventuate-platform-dependencies:${project.ext.eventuatePlatformVersion}"))
         }
