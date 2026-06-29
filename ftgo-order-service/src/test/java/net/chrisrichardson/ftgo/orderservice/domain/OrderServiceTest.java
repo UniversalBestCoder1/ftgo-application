@@ -21,7 +21,7 @@ import static net.chrisrichardson.ftgo.orderservice.OrderDetailsMother.CONSUMER_
 import static net.chrisrichardson.ftgo.orderservice.OrderDetailsMother.ORDER_ID;
 import static net.chrisrichardson.ftgo.orderservice.RestaurantMother.AJANTA_ID;
 import static net.chrisrichardson.ftgo.orderservice.RestaurantMother.AJANTA_RESTAURANT;
-import static org.mockito.Matchers.same;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;

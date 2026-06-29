@@ -148,6 +148,10 @@ public class Ticket {
     return id;
   }
 
+  public TicketState getState() {
+    return state;
+  }
+
   public List<TicketDomainEvent> confirmCancel() {
     return switch (state) {
       case CANCEL_PENDING -> {

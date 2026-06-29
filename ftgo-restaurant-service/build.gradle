@@ -1,4 +1,6 @@
 
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'jacoco'
 apply plugin: FtgoServicePlugin
 
 apply plugin: IntegrationTestsPlugin
@@ -63,6 +65,8 @@ dependencies {
     testImplementation "com.jayway.jsonpath:json-path:2.3.0"
     testImplementation "io.eventuate.tram.core:eventuate-tram-spring-testing-support-cloud-contract"
     testImplementation project(":ftgo-test-util-json-schema")
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation "org.json:json:20240303"
 
     integrationTestImplementation "org.springframework.cloud:spring-cloud-contract-wiremock"
     integrationTestImplementation "org.springframework.cloud:spring-cloud-starter-contract-stub-runner"
@@ -70,3 +74,8 @@ dependencies {
     integrationTestImplementation "io.eventuate.tram.core:eventuate-tram-spring-in-memory"
 
 }
+
+jacocoTestReport {
+    reports { xml.required = true; html.required = true }
+}
+test.finalizedBy jacocoTestReport

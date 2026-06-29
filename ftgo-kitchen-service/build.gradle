@@ -9,6 +9,8 @@ buildscript {
     }
 }
 
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'jacoco'
 apply plugin: "io.spring.dependency-management"
 apply plugin: 'spring-cloud-contract'
 apply plugin: IntegrationTestsPlugin
@@ -69,12 +71,18 @@ dependencies {
     testImplementation "io.eventuate.tram.sagas:eventuate-tram-sagas-spring-in-memory"
     testImplementation "io.eventuate.tram.core:eventuate-tram-spring-in-memory"
     testImplementation "org.springframework.boot:spring-boot-starter-test:$springBootVersion"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation "io.rest-assured:rest-assured"
     testImplementation "com.jayway.jsonpath:json-path:2.3.0"
     testImplementation "io.eventuate.tram.core:eventuate-tram-spring-testing-support-cloud-contract"
 
     testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-verifier'
 }
+
+jacocoTestReport {
+    reports { xml.required = true; html.required = true }
+}
+test.finalizedBy jacocoTestReport
 
 ftgoJsonSchema2Pojo {
 

@@ -22,6 +22,8 @@ buildscript {
 }
 
 apply plugin: FtgoServicePlugin
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'jacoco'
 
 apply plugin: 'spring-cloud-contract'
 apply plugin: 'docker-compose'
@@ -115,6 +117,12 @@ protobuf {
 
 apply plugin: 'idea'
 
+configurations.all {
+    resolutionStrategy.capabilitiesResolution.withCapability("org.codehaus.groovy:groovy") { selectHighestVersion() }
+    resolutionStrategy.capabilitiesResolution.withCapability("org.codehaus.groovy:groovy-json") { selectHighestVersion() }
+    resolutionStrategy.capabilitiesResolution.withCapability("org.codehaus.groovy:groovy-xml") { selectHighestVersion() }
+}
+
 idea {
     module {
         sourceDirs += file("${projectDir}/build/generated/source/proto/main/java");
@@ -172,9 +180,9 @@ dependencies {
 
     // Added this stuff
 
-    testImplementation "net.chrisrichardson.ftgo:ftgo-accounting-service-contracts:unspecified:stubs"
-    testImplementation "net.chrisrichardson.ftgo:ftgo-consumer-service-contracts:unspecified:stubs"
-    testImplementation "net.chrisrichardson.ftgo:ftgo-kitchen-service-contracts:unspecified:stubs"
+    integrationTestImplementation "net.chrisrichardson.ftgo:ftgo-accounting-service-contracts:unspecified:stubs"
+    integrationTestImplementation "net.chrisrichardson.ftgo:ftgo-consumer-service-contracts:unspecified:stubs"
+    integrationTestImplementation "net.chrisrichardson.ftgo:ftgo-kitchen-service-contracts:unspecified:stubs"
     testImplementation "org.springframework.cloud:spring-cloud-contract-wiremock"
     testImplementation "org.springframework.cloud:spring-cloud-starter-contract-stub-runner"
     testImplementation 'io.rest-assured:rest-assured:3.0.6'
@@ -191,11 +199,17 @@ dependencies {
 
     testImplementation project(":ftgo-test-util")
     testImplementation "org.hamcrest:hamcrest:2.1"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
 
     integrationTestImplementation "io.eventuate.tram.sagas:eventuate-tram-sagas-spring-testing-support-cloud-contract"
     integrationTestImplementation "io.eventuate.tram.core:eventuate-tram-spring-in-memory"
 
 }
+
+jacocoTestReport {
+    reports { xml.required = true; html.required = true }
+}
+test.finalizedBy jacocoTestReport
 
 ftgoJsonSchema2Pojo {
 

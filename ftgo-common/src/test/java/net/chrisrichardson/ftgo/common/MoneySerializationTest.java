@@ -11,6 +11,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class MoneySerializationTest {
@@ -77,7 +78,7 @@ public class MoneySerializationTest {
       JSonMapper.fromJson("{\"price\": { \"amount\" : \"12.34\"} }", MoneyContainer.class);
       fail("expected exception");
     } catch (RuntimeException e) {
-      assertEquals(JsonMappingException.class, e.getCause().getClass());
+      assertTrue(e.getCause() instanceof JsonMappingException);
     }
   }
 
