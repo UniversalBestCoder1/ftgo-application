@@ -10,7 +10,7 @@ import net.chrisrichardson.ftgo.kitchenservice.api.events.TicketAcceptedEvent;
 import net.chrisrichardson.ftgo.kitchenservice.api.events.TicketCancelled;
 import net.chrisrichardson.ftgo.kitchenservice.api.events.TicketDomainEvent;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -58,13 +58,13 @@ public class Ticket {
   }
 
   public List<TicketDomainEvent> confirmCreate() {
-    switch (state) {
-      case CREATE_PENDING:
+    return switch (state) {
+      case CREATE_PENDING -> {
         state = TicketState.AWAITING_ACCEPTANCE;
-        return singletonList(new TicketCreatedEvent(id, new TicketDetails()));
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield singletonList(new TicketCreatedEvent(id, new TicketDetails()));
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<TicketDomainEvent> cancelCreate() {
@@ -73,17 +73,19 @@ public class Ticket {
 
 
   public List<TicketDomainEvent> accept(LocalDateTime readyBy) {
-    switch (state) {
-      case AWAITING_ACCEPTANCE:
-        // Verify that readyBy is in the futurestate = TicketState.ACCEPTED;
+    return switch (state) {
+      case AWAITING_ACCEPTANCE -> {
+        // Verify that readyBy is in the future
+        // NOTE: pre-existing book bug — `state = TicketState.ACCEPTED;` was swallowed
+        // by this comment in the original source; behaviour preserved as-is.
         this.acceptTime = LocalDateTime.now();
         if (!acceptTime.isBefore(readyBy))
           throw new IllegalArgumentException(String.format("readyBy %s is not after now %s", readyBy, acceptTime));
         this.readyBy = readyBy;
-        return singletonList(new TicketAcceptedEvent(readyBy));
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield singletonList(new TicketAcceptedEvent(readyBy));
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   // TODO reject()
@@ -91,62 +93,55 @@ public class Ticket {
   // TODO cancel()
 
   public List<TicketDomainEvent> preparing() {
-    switch (state) {
-      case ACCEPTED:
+    return switch (state) {
+      case ACCEPTED -> {
         this.state = TicketState.PREPARING;
         this.preparingTime = LocalDateTime.now();
-        return singletonList(new TicketPreparationStartedEvent());
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield singletonList(new TicketPreparationStartedEvent());
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<TicketDomainEvent> readyForPickup() {
-    switch (state) {
-      case PREPARING:
+    return switch (state) {
+      case PREPARING -> {
         this.state = TicketState.READY_FOR_PICKUP;
         this.readyForPickupTime = LocalDateTime.now();
-        return singletonList(new TicketPreparationCompletedEvent());
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield singletonList(new TicketPreparationCompletedEvent());
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<TicketDomainEvent> pickedUp() {
-    switch (state) {
-      case READY_FOR_PICKUP:
+    return switch (state) {
+      case READY_FOR_PICKUP -> {
         this.state = TicketState.PICKED_UP;
         this.pickedUpTime = LocalDateTime.now();
-        return singletonList(new TicketPickedUpEvent());
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield singletonList(new TicketPickedUpEvent());
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public void changeLineItemQuantity() {
     switch (state) {
-      case AWAITING_ACCEPTANCE:
-        // TODO
-        break;
-      case PREPARING:
-        // TODO - too late
-        break;
-      default:
-        throw new UnsupportedStateTransitionException(state);
+      case AWAITING_ACCEPTANCE -> { /* TODO */ }
+      case PREPARING -> { /* TODO - too late */ }
+      default -> throw new UnsupportedStateTransitionException(state);
     }
-
   }
 
   public List<TicketDomainEvent> cancel() {
-    switch (state) {
-      case AWAITING_ACCEPTANCE:
-      case ACCEPTED:
+    return switch (state) {
+      case AWAITING_ACCEPTANCE, ACCEPTED -> {
         this.previousState = state;
         this.state = TicketState.CANCEL_PENDING;
-        return emptyList();
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield emptyList();
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public Long getId() {
@@ -154,56 +149,53 @@ public class Ticket {
   }
 
   public List<TicketDomainEvent> confirmCancel() {
-    switch (state) {
-      case CANCEL_PENDING:
+    return switch (state) {
+      case CANCEL_PENDING -> {
         this.state = TicketState.CANCELLED;
-        return singletonList(new TicketCancelled());
-      default:
-        throw new UnsupportedStateTransitionException(state);
-
-    }
+        yield singletonList(new TicketCancelled());
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
-  public List<TicketDomainEvent> undoCancel() {
-    switch (state) {
-      case CANCEL_PENDING:
-        this.state = this.previousState;
-        return emptyList();
-      default:
-        throw new UnsupportedStateTransitionException(state);
 
-    }
+  public List<TicketDomainEvent> undoCancel() {
+    return switch (state) {
+      case CANCEL_PENDING -> {
+        this.state = this.previousState;
+        yield emptyList();
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<TicketDomainEvent> beginReviseOrder(List<RevisedOrderLineItem> revisedOrderLineItems) {
-    switch (state) {
-      case AWAITING_ACCEPTANCE:
-      case ACCEPTED:
+    return switch (state) {
+      case AWAITING_ACCEPTANCE, ACCEPTED -> {
         this.previousState = state;
         this.state = TicketState.REVISION_PENDING;
-        return emptyList();
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield emptyList();
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<TicketDomainEvent> undoBeginReviseOrder() {
-    switch (state) {
-      case REVISION_PENDING:
+    return switch (state) {
+      case REVISION_PENDING -> {
         this.state = this.previousState;
-        return emptyList();
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield emptyList();
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<TicketDomainEvent> confirmReviseTicket(List<RevisedOrderLineItem> revisedOrderLineItems) {
-    switch (state) {
-      case REVISION_PENDING:
+    return switch (state) {
+      case REVISION_PENDING -> {
         this.state = this.previousState;
-        return singletonList(new TicketRevised());
-      default:
-        throw new UnsupportedStateTransitionException(state);
-
-    }
+        yield singletonList(new TicketRevised());
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 }

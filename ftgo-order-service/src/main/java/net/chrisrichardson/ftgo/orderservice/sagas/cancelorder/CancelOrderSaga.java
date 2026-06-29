@@ -15,7 +15,7 @@ import net.chrisrichardson.ftgo.kitchenservice.api.KitchenServiceChannels;
 import net.chrisrichardson.ftgo.kitchenservice.api.UndoBeginCancelTicketCommand;
 import org.springframework.util.Assert;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import static io.eventuate.tram.commands.consumer.CommandWithDestinationBuilder.send;
 

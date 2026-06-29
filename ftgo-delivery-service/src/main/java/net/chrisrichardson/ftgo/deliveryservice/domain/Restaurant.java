@@ -2,7 +2,7 @@ package net.chrisrichardson.ftgo.deliveryservice.domain;
 
 import net.chrisrichardson.ftgo.common.Address;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Access(AccessType.FIELD)

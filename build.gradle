@@ -1,7 +1,6 @@
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
     }
     dependencies {
         classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
@@ -20,8 +19,11 @@ subprojects {
 
     // TODO apply plugin: 'pmd'
 
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
     group = "net.chrisrichardson.ftgo"
 
@@ -29,7 +31,6 @@ subprojects {
         eventuateMavenRepoUrl.split('[ ,]').each { repoUrl -> maven { url repoUrl.trim() } }
 
         mavenCentral()
-        jcenter()
 
         maven {
             url 'https://jitpack.io'
@@ -45,9 +46,9 @@ subprojects {
 
         implementation(platform("io.eventuate.platform:eventuate-platform-dependencies:$eventuatePlatformVersion"))
         constraints {
-                compile ("io.netty:netty-codec-http2") {
+                implementation ("io.netty:netty-codec-http2") {
                     version {
-                        strictly("4.1.72.Final")
+                        strictly("4.1.108.Final")
                     }
                 }
         }

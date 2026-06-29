@@ -2,7 +2,7 @@ package net.chrisrichardson.ftgo.deliveryservice.domain;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import java.util.List;
 
 public class CustomCourierRepositoryImpl implements CustomCourierRepository {

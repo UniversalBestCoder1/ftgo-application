@@ -1,3 +1,12 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
 dependencies {
     compile "io.eventuate.util:eventuate-util-spring-swagger"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+repositories {
+    mavenCentral()
+}
+compileKotlin {
 }

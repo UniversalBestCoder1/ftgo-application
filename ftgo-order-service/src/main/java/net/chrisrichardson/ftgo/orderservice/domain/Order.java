@@ -6,7 +6,7 @@ import net.chrisrichardson.ftgo.common.Money;
 import net.chrisrichardson.ftgo.common.UnsupportedStateTransitionException;
 import net.chrisrichardson.ftgo.orderservice.api.events.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.List;
 
 import static net.chrisrichardson.ftgo.orderservice.api.events.OrderState.APPROVED;
@@ -85,56 +85,38 @@ public class Order {
   }
 
   public List<OrderDomainEvent> cancel() {
-    switch (state) {
-      case APPROVED:
-        this.state = OrderState.CANCEL_PENDING;
-        return emptyList();
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+    return switch (state) {
+      case APPROVED -> { this.state = OrderState.CANCEL_PENDING; yield emptyList(); }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<OrderDomainEvent> undoPendingCancel() {
-    switch (state) {
-      case CANCEL_PENDING:
-        this.state = OrderState.APPROVED;
-        return emptyList();
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+    return switch (state) {
+      case CANCEL_PENDING -> { this.state = OrderState.APPROVED; yield emptyList(); }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<OrderDomainEvent> noteCancelled() {
-    switch (state) {
-      case CANCEL_PENDING:
-        this.state = OrderState.CANCELLED;
-        return singletonList(new OrderCancelled());
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+    return switch (state) {
+      case CANCEL_PENDING -> { this.state = OrderState.CANCELLED; yield singletonList(new OrderCancelled()); }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<OrderDomainEvent> noteApproved() {
-    switch (state) {
-      case APPROVAL_PENDING:
-        this.state = APPROVED;
-        return singletonList(new OrderAuthorized());
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
-
+    return switch (state) {
+      case APPROVAL_PENDING -> { this.state = APPROVED; yield singletonList(new OrderAuthorized()); }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<OrderDomainEvent> noteRejected() {
-    switch (state) {
-      case APPROVAL_PENDING:
-        this.state = REJECTED;
-        return singletonList(new OrderRejected());
-
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
-
+    return switch (state) {
+      case APPROVAL_PENDING -> { this.state = REJECTED; yield singletonList(new OrderRejected()); }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
 
@@ -143,47 +125,37 @@ public class Order {
   }
 
   public ResultWithDomainEvents<LineItemQuantityChange, OrderDomainEvent> revise(OrderRevision orderRevision) {
-    switch (state) {
-
-      case APPROVED:
+    return switch (state) {
+      case APPROVED -> {
         LineItemQuantityChange change = orderLineItems.lineItemQuantityChange(orderRevision);
-        if (change.newOrderTotal.isGreaterThanOrEqual(orderMinimum)) {
-          throw new OrderMinimumNotMetException();
-        }
+        if (change.newOrderTotal.isGreaterThanOrEqual(orderMinimum)) throw new OrderMinimumNotMetException();
         this.state = REVISION_PENDING;
-        return new ResultWithDomainEvents<>(change, singletonList(new OrderRevisionProposed(orderRevision, change.currentOrderTotal, change.newOrderTotal)));
-
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield new ResultWithDomainEvents<>(change, singletonList(new OrderRevisionProposed(orderRevision, change.currentOrderTotal, change.newOrderTotal)));
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<OrderDomainEvent> rejectRevision() {
-    switch (state) {
-      case REVISION_PENDING:
-        this.state = APPROVED;
-        return emptyList();
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+    return switch (state) {
+      case REVISION_PENDING -> { this.state = APPROVED; yield emptyList(); }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
   public List<OrderDomainEvent> confirmRevision(OrderRevision orderRevision) {
-    switch (state) {
-      case REVISION_PENDING:
+    return switch (state) {
+      case REVISION_PENDING -> {
         LineItemQuantityChange licd = orderLineItems.lineItemQuantityChange(orderRevision);
-
         orderRevision.getDeliveryInformation().ifPresent(newDi -> this.deliveryInformation = newDi);
-
-        if (orderRevision.getRevisedOrderLineItems() != null && orderRevision.getRevisedOrderLineItems().size() > 0) {
+        if (orderRevision.getRevisedOrderLineItems() != null && !orderRevision.getRevisedOrderLineItems().isEmpty()) {
           orderLineItems.updateLineItems(orderRevision);
         }
-
         this.state = APPROVED;
-        return singletonList(new OrderRevised(orderRevision, licd.currentOrderTotal, licd.newOrderTotal));
-      default:
-        throw new UnsupportedStateTransitionException(state);
-    }
+        yield singletonList(new OrderRevised(orderRevision, licd.currentOrderTotal, licd.newOrderTotal));
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
 

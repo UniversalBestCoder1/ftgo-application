@@ -3,9 +3,9 @@ package net.chrisrichardson.ftgo.deliveryservice.domain;
 import net.chrisrichardson.ftgo.deliveryservice.api.web.DeliveryActionType;
 import net.chrisrichardson.ftgo.common.Address;
 
-import javax.persistence.Embeddable;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import java.time.LocalDateTime;
 
 @Embeddable

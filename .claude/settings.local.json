@@ -1,7 +1,25 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs cat)"
+      "Bash(xargs cat)",
+      "Bash(java -version)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(docker-compose --version)",
+      "Read(//usr/lib/jvm/**)",
+      "Bash(update-alternatives --list java)",
+      "Read(//home/fjj/.sdkman/candidates/**)",
+      "WebSearch",
+      "Bash(xargs sed -i -e 's/import javax\\\\.persistence\\\\./import jakarta.persistence./g' -e 's/import javax\\\\.validation\\\\./import jakarta.validation./g' -e 's/import javax\\\\.annotation\\\\./import jakarta.annotation./g' -e 's/import javax\\\\.transaction\\\\./import jakarta.transaction./g')",
+      "Bash(pkill -f gradle)",
+      "Read(//home/fjj/.gradle/wrapper/dists/gradle-8.8-all/6gdy1pgp427xkqcjbxw3ylt6h/**)",
+      "Bash(rm -f gradle-8.8-all.zip.part gradle-8.8-all.zip.ok)",
+      "Bash(timeout 30 wget --tries=1 -q -O /dev/null https://services.gradle.org/distributions/gradle-8.8-all.zip)",
+      "Bash(kill %1)",
+      "Bash(wget -c -q --show-progress -O gradle-8.8-all.zip https://services.gradle.org/distributions/gradle-8.8-all.zip)",
+      "Bash(echo \"started download in background, pid: $!\")",
+      "Bash(curl -sL --max-time 25 \"https://search.maven.org/solrsearch/select?q=g:io.eventuate.platform+AND+a:eventuate-platform-dependencies&core=gav&rows=20&wt=json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(x['v']\\) for x in d['response']['docs']]\")"
     ]
   }
 }

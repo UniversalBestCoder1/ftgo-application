@@ -1,6 +1,6 @@
 package net.chrisrichardson.ftgo.deliveryservice.domain;
 
-import javax.persistence.ElementCollection;
+import jakarta.persistence.ElementCollection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
