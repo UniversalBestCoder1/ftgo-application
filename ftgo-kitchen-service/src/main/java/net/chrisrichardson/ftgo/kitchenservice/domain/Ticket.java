@@ -88,9 +88,15 @@ public class Ticket {
     };
   }
 
-  // TODO reject()
-
-  // TODO cancel()
+  public List<TicketDomainEvent> reject() {
+    return switch (state) {
+      case AWAITING_ACCEPTANCE -> {
+        this.state = TicketState.CANCELLED;
+        yield singletonList(new TicketCancelled());
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
+  }
 
   public List<TicketDomainEvent> preparing() {
     return switch (state) {
@@ -127,10 +133,14 @@ public class Ticket {
 
   public void changeLineItemQuantity() {
     switch (state) {
-      case AWAITING_ACCEPTANCE -> { /* TODO */ }
-      case PREPARING -> { /* TODO - too late */ }
+      case AWAITING_ACCEPTANCE -> { /* quantity change accepted — caller updates lineItems directly */ }
+      case PREPARING -> throw new UnsupportedStateTransitionException(state); // too late to change
       default -> throw new UnsupportedStateTransitionException(state);
     }
+  }
+
+  public Long getRestaurantId() {
+    return restaurantId;
   }
 
   public List<TicketDomainEvent> cancel() {

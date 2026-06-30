@@ -14,6 +14,9 @@ import java.util.Optional;
 public class OrderDetails {
 
   private OrderInfo orderInfo;
+  private Optional<TicketInfo> ticketInfo = Optional.empty();
+  private Optional<DeliveryInfo> deliveryInfo = Optional.empty();
+  private Optional<BillInfo> billInfo = Optional.empty();
 
   public OrderDetails() {
   }
@@ -27,7 +30,9 @@ public class OrderDetails {
                       Optional<DeliveryInfo> deliveryInfo,
                       Optional<BillInfo> billInfo) {
     this(orderInfo);
-    System.out.println("FIXME");
+    this.ticketInfo = ticketInfo;
+    this.deliveryInfo = deliveryInfo;
+    this.billInfo = billInfo;
   }
 
   @Override
@@ -52,6 +57,18 @@ public class OrderDetails {
 
   public void setOrderInfo(OrderInfo orderInfo) {
     this.orderInfo = orderInfo;
+  }
+
+  public Optional<TicketInfo> getTicketInfo() {
+    return ticketInfo;
+  }
+
+  public Optional<DeliveryInfo> getDeliveryInfo() {
+    return deliveryInfo;
+  }
+
+  public Optional<BillInfo> getBillInfo() {
+    return billInfo;
   }
 
 

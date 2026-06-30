@@ -1,7 +1,10 @@
 package net.chrisrichardson.ftgo.apiagateway.orders;
 
 import net.chrisrichardson.ftgo.apiagateway.proxies.AccountingService;
+import net.chrisrichardson.ftgo.apiagateway.proxies.AccountingServiceDestinations;
 import net.chrisrichardson.ftgo.apiagateway.proxies.DeliveryService;
+import net.chrisrichardson.ftgo.apiagateway.proxies.DeliveryServiceDestinations;
+import net.chrisrichardson.ftgo.apiagateway.proxies.KitchenServiceDestinations;
 import net.chrisrichardson.ftgo.apiagateway.proxies.OrderServiceProxy;
 import net.chrisrichardson.ftgo.apiagateway.proxies.KitchenService;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -17,7 +20,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 
 @Configuration
-@EnableConfigurationProperties(OrderDestinations.class)
+@EnableConfigurationProperties({OrderDestinations.class, KitchenServiceDestinations.class, DeliveryServiceDestinations.class, AccountingServiceDestinations.class})
 public class OrderConfiguration {
 
   @Bean

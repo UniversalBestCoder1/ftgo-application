@@ -121,7 +121,9 @@ public class Order {
 
 
   public List<OrderDomainEvent> noteReversingAuthorization() {
-    return null;
+    // Compensation step: authorization is being reversed, no state change needed
+    // (order will subsequently be rejected via noteRejected)
+    return emptyList();
   }
 
   public ResultWithDomainEvents<LineItemQuantityChange, OrderDomainEvent> revise(OrderRevision orderRevision) {

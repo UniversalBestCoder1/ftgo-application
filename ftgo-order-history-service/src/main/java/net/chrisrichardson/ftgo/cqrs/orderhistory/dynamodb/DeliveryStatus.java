@@ -1,5 +1,8 @@
 package net.chrisrichardson.ftgo.cqrs.orderhistory.dynamodb;
 
 public enum DeliveryStatus {
-  PICKED_UP
+  PREPARING,
+  READY_FOR_PICKUP,
+  PICKED_UP,
+  DELIVERED
 }

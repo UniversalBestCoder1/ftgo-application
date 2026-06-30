@@ -361,13 +361,24 @@ public class OrderHistoryDaoDynamoDb implements OrderHistoryDao {
 
   @Override
   public void noteTicketPreparationStarted(String orderId) {
-    throw new UnsupportedOperationException();
+    UpdateItemSpec spec = new UpdateItemSpec()
+            .withPrimaryKey("orderId", orderId)
+            .withUpdateExpression("SET #deliveryStatus = :deliveryStatus")
+            .withNameMap(Collections.singletonMap("#deliveryStatus", DELIVERY_STATUS_FIELD))
+            .withValueMap(Collections.singletonMap(":deliveryStatus", DeliveryStatus.PREPARING.toString()))
+            .withReturnValues(ReturnValue.NONE);
+    idempotentUpdate(spec, Optional.empty());
   }
 
   @Override
   public void noteTicketPreparationCompleted(String orderId) {
-    throw new UnsupportedOperationException();
-
+    UpdateItemSpec spec = new UpdateItemSpec()
+            .withPrimaryKey("orderId", orderId)
+            .withUpdateExpression("SET #deliveryStatus = :deliveryStatus")
+            .withNameMap(Collections.singletonMap("#deliveryStatus", DELIVERY_STATUS_FIELD))
+            .withValueMap(Collections.singletonMap(":deliveryStatus", DeliveryStatus.READY_FOR_PICKUP.toString()))
+            .withReturnValues(ReturnValue.NONE);
+    idempotentUpdate(spec, Optional.empty());
   }
 
   @Override
@@ -385,14 +396,23 @@ public class OrderHistoryDaoDynamoDb implements OrderHistoryDao {
 
   @Override
   public void updateLocation(String orderId, Location location) {
-    throw new UnsupportedOperationException();
-
+    UpdateItemSpec spec = new UpdateItemSpec()
+            .withPrimaryKey("orderId", orderId)
+            .withUpdateExpression("SET courierLocation = :location")
+            .withValueMap(Collections.singletonMap(":location", location.toString()))
+            .withReturnValues(ReturnValue.NONE);
+    idempotentUpdate(spec, Optional.empty());
   }
 
   @Override
   public void noteDelivered(String orderId) {
-    throw new UnsupportedOperationException();
-
+    UpdateItemSpec spec = new UpdateItemSpec()
+            .withPrimaryKey("orderId", orderId)
+            .withUpdateExpression("SET #deliveryStatus = :deliveryStatus")
+            .withNameMap(Collections.singletonMap("#deliveryStatus", DELIVERY_STATUS_FIELD))
+            .withValueMap(Collections.singletonMap(":deliveryStatus", DeliveryStatus.DELIVERED.toString()))
+            .withReturnValues(ReturnValue.NONE);
+    idempotentUpdate(spec, Optional.empty());
   }
 
   @Override

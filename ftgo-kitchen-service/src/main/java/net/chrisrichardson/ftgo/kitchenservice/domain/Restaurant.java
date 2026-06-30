@@ -35,11 +35,17 @@ public class Restaurant {
   }
 
   public List<DomainEvent> reviseMenu(RestaurantMenu revisedMenu) {
-    throw new UnsupportedOperationException();
+    this.menuItems = revisedMenu.getMenuItems();
+    return java.util.Collections.emptyList();
   }
 
   public void verifyRestaurantDetails(TicketDetails ticketDetails) {
-    // TODO - implement me
+    if (ticketDetails.getLineItems() == null) return;
+    ticketDetails.getLineItems().forEach(lineItem -> {
+      if (menuItems.stream().noneMatch(mi -> mi.getId().equals(lineItem.getMenuItemId()))) {
+        throw new IllegalArgumentException("Unknown menu item: " + lineItem.getMenuItemId());
+      }
+    });
   }
 
   public Long getId() {

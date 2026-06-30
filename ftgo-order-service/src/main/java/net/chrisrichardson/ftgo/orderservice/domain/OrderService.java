@@ -109,7 +109,7 @@ public class OrderService {
   }
 
   public void noteReversingAuthorization(Long orderId) {
-    throw new UnsupportedOperationException();
+    updateOrder(orderId, Order::noteReversingAuthorization);
   }
 
   @Transactional
