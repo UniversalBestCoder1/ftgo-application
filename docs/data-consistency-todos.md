@@ -19,12 +19,12 @@
 
 | ID | 位置 | 问题描述 |
 |----|------|----------|
-| IC-01 | `Order.java:87-98,141-145` | `cancel()`/`undoPendingCancel()`/`rejectRevision()` 不发布 Domain Events，CANCEL_PENDING/REVISION_PENDING 中间状态对下游不可见 |
-| IC-02 | `OrderHistoryEventHandlers.java:38-41` | 未订阅 `OrderRevisionProposed`、`OrderRevised`；`DeliveryPickedUp` 被注释掉 |
-| IC-03 | `DeliveryMessageHandlers.java` | 不订阅 `OrderRevised`，修订后配送地址/明细不更新 |
-| IC-04 | `Account.java:process(ReverseAuthorizationCommandInternal)` | 返回 `emptyList()`，退款无事件通知 |
-| IC-05 | `KitchenService.java` | `cancel/confirmCancel/beginReviseOrder/confirmReviseTicket/undoBeginReviseOrder` 缺少 `@Transactional` |
-| IC-06 | `Ticket.java:previousState` | BUG-01 存在时，`cancel()` 保存的 `previousState` 是错误的 `AWAITING_ACCEPTANCE` 而非 `ACCEPTED`，`undoCancel()` 会回滚到错误状态 |
+| IC-01 | `Order.java:87-98,141-145` | ~~`cancel()`/`undoPendingCancel()`/`rejectRevision()` 不发布 Domain Events，CANCEL_PENDING/REVISION_PENDING 中间状态对下游不可见~~ ✅ **已修复** |
+| IC-02 | `OrderHistoryEventHandlers.java:38-41` | ~~未订阅 `OrderRevisionProposed`、`OrderRevised`；`DeliveryPickedUp` 被注释掉~~ ✅ **已修复** |
+| IC-03 | `DeliveryMessageHandlers.java` | ~~不订阅 `OrderRevised`，修订后配送地址/明细不更新~~ ✅ **已修复** |
+| IC-04 | `Account.java:process(ReverseAuthorizationCommandInternal)` | ~~返回 `emptyList()`，退款无事件通知~~ ✅ **已修复** |
+| IC-05 | `KitchenService.java` | ~~`cancel/confirmCancel/beginReviseOrder/confirmReviseTicket/undoBeginReviseOrder` 缺少 `@Transactional`~~ ✅ **已修复** |
+| IC-06 | `Ticket.java:previousState` | ~~BUG-01 存在时，`cancel()` 保存的 `previousState` 是错误的 `AWAITING_ACCEPTANCE` 而非 `ACCEPTED`，`undoCancel()` 会回滚到错误状态~~ ✅ **随 BUG-01 一并修复** |
 
 ### 🟡 并发与幂等性（低频但高影响）
 
