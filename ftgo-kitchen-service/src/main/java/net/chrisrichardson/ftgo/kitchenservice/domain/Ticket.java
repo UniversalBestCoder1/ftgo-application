@@ -68,7 +68,13 @@ public class Ticket {
   }
 
   public List<TicketDomainEvent> cancelCreate() {
-    throw new NotYetImplementedException();
+    return switch (state) {
+      case CREATE_PENDING -> {
+        this.state = TicketState.CANCELLED;
+        yield singletonList(new TicketCancelled()); // fix BUG-02: implement compensation
+      }
+      default -> throw new UnsupportedStateTransitionException(state);
+    };
   }
 
 
@@ -76,12 +82,11 @@ public class Ticket {
     return switch (state) {
       case AWAITING_ACCEPTANCE -> {
         // Verify that readyBy is in the future
-        // NOTE: pre-existing book bug — `state = TicketState.ACCEPTED;` was swallowed
-        // by this comment in the original source; behaviour preserved as-is.
         this.acceptTime = LocalDateTime.now();
         if (!acceptTime.isBefore(readyBy))
           throw new IllegalArgumentException(String.format("readyBy %s is not after now %s", readyBy, acceptTime));
         this.readyBy = readyBy;
+        this.state = TicketState.ACCEPTED; // fix BUG-01: state must transition to ACCEPTED
         yield singletonList(new TicketAcceptedEvent(readyBy));
       }
       default -> throw new UnsupportedStateTransitionException(state);

@@ -2,6 +2,8 @@ package net.chrisrichardson.ftgo.orderservice.domain
 
 import net.chrisrichardson.ftgo.orderservice.OrderDetailsMother
 import net.chrisrichardson.ftgo.orderservice.RestaurantMother
+import net.chrisrichardson.ftgo.orderservice.api.events.OrderCancelPending
+import net.chrisrichardson.ftgo.orderservice.api.events.OrderCancelUndone
 import net.chrisrichardson.ftgo.orderservice.api.events.OrderCancelled
 import net.chrisrichardson.ftgo.orderservice.api.events.OrderRejected
 import net.chrisrichardson.ftgo.orderservice.api.events.OrderState
@@ -39,7 +41,8 @@ class OrderStateTransitionTest {
     fun shouldBeginCancelFromApproved() {
         val order = approvedOrder()
         val events = order.cancel()
-        assertEquals(emptyList(), events)
+        // IC-01: cancel() now publishes OrderCancelPending for downstream visibility
+        assertEquals(listOf(OrderCancelPending()), events)
         assertEquals(OrderState.CANCEL_PENDING, order.state)
     }
 
@@ -57,7 +60,8 @@ class OrderStateTransitionTest {
         val order = approvedOrder()
         order.cancel()
         val events = order.undoPendingCancel()
-        assertEquals(emptyList(), events)
+        // IC-01: undoPendingCancel() now publishes OrderCancelUndone for downstream visibility
+        assertEquals(listOf(OrderCancelUndone()), events)
         assertEquals(OrderState.APPROVED, order.state)
     }
 

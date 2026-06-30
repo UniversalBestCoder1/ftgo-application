@@ -63,9 +63,18 @@ public class DeliveryService {
 
 
 
-  // notePickedUp
-  // noteDelivered
-  // noteLocation
+  /**
+   * IC-03: update the delivery address when a ReviseOrderSaga completes with
+   * a new delivery address.  No-op if the delivery cannot be found.
+   */
+  @Transactional
+  public void updateDeliveryAddress(long orderId, Address newDeliveryAddress) {
+    deliveryRepository.findById(orderId).ifPresent(delivery -> {
+      if (newDeliveryAddress != null) {
+        delivery.setDeliveryAddress(newDeliveryAddress);
+      }
+    });
+  }
 
   void noteAvailable(long courierId) {
     courierRepository.findOrCreateCourier(courierId).noteAvailable();

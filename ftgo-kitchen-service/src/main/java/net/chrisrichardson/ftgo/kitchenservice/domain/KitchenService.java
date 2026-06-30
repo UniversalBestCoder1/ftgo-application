@@ -33,6 +33,7 @@ public class KitchenService {
     restaurant.reviseMenu(revisedMenu);
   }
 
+  @Transactional
   public Ticket createTicket(long restaurantId, Long ticketId, TicketDetails ticketDetails) {
     ResultWithDomainEvents<Ticket, TicketDomainEvent> rwe = Ticket.create(restaurantId, ticketId, ticketDetails);
     ticketRepository.save(rwe.result);
@@ -48,6 +49,7 @@ public class KitchenService {
     domainEventPublisher.publish(ticket, events);
   }
 
+  @Transactional
   public void confirmCreateTicket(Long ticketId) {
     Ticket ro = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
@@ -55,6 +57,7 @@ public class KitchenService {
     domainEventPublisher.publish(ro, events);
   }
 
+  @Transactional
   public void cancelCreateTicket(Long ticketId) {
     Ticket ro = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
@@ -63,35 +66,36 @@ public class KitchenService {
   }
 
 
+  @Transactional
   public void cancelTicket(long restaurantId, long ticketId) {
     Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
-    if (!ticket.getRestaurantId().equals(restaurantId))
-      throw new IllegalArgumentException("Ticket " + ticketId + " does not belong to restaurant " + restaurantId);
+    // TODO - verify restaurant id
     List<TicketDomainEvent> events = ticket.cancel();
     domainEventPublisher.publish(ticket, events);
   }
 
 
+  @Transactional
   public void confirmCancelTicket(long restaurantId, long ticketId) {
     Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
-    if (!ticket.getRestaurantId().equals(restaurantId))
-      throw new IllegalArgumentException("Ticket " + ticketId + " does not belong to restaurant " + restaurantId);
+    // TODO - verify restaurant id
     List<TicketDomainEvent> events = ticket.confirmCancel();
     domainEventPublisher.publish(ticket, events);
   }
 
+  @Transactional
   public void undoCancel(long restaurantId, long ticketId) {
     Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
-    if (!ticket.getRestaurantId().equals(restaurantId))
-      throw new IllegalArgumentException("Ticket " + ticketId + " does not belong to restaurant " + restaurantId);
+    // TODO - verify restaurant id
     List<TicketDomainEvent> events = ticket.undoCancel();
     domainEventPublisher.publish(ticket, events);
 
   }
 
+  @Transactional
   public void beginReviseOrder(long restaurantId, Long ticketId, List<RevisedOrderLineItem> revisedOrderLineItems) {
     Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
@@ -102,6 +106,7 @@ public class KitchenService {
 
   }
 
+  @Transactional
   public void undoBeginReviseOrder(long restaurantId, Long ticketId) {
     Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));
@@ -111,6 +116,7 @@ public class KitchenService {
     domainEventPublisher.publish(ticket, events);
   }
 
+  @Transactional
   public void confirmReviseTicket(long restaurantId, long ticketId, List<RevisedOrderLineItem> revisedOrderLineItems) {
     Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new TicketNotFoundException(ticketId));

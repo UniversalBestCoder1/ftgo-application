@@ -86,14 +86,19 @@ public class Order {
 
   public List<OrderDomainEvent> cancel() {
     return switch (state) {
-      case APPROVED -> { this.state = OrderState.CANCEL_PENDING; yield emptyList(); }
+      // IC-01: emit OrderCancelPending so downstream (OrderHistory) tracks this transition
+      case APPROVED -> { this.state = OrderState.CANCEL_PENDING; yield singletonList(new OrderCancelPending()); }
+      // CC-01: idempotent — the eager state transition in OrderService.cancel() already moved
+      //        us to CANCEL_PENDING; the BeginCancelCommand Saga step finds us here and is a no-op.
+      case CANCEL_PENDING -> emptyList();
       default -> throw new UnsupportedStateTransitionException(state);
     };
   }
 
   public List<OrderDomainEvent> undoPendingCancel() {
     return switch (state) {
-      case CANCEL_PENDING -> { this.state = OrderState.APPROVED; yield emptyList(); }
+      // IC-01: emit OrderCancelUndone for CancelOrderSaga compensation visibility
+      case CANCEL_PENDING -> { this.state = OrderState.APPROVED; yield singletonList(new OrderCancelUndone()); }
       default -> throw new UnsupportedStateTransitionException(state);
     };
   }
@@ -132,7 +137,17 @@ public class Order {
         LineItemQuantityChange change = orderLineItems.lineItemQuantityChange(orderRevision);
         if (change.newOrderTotal.isGreaterThanOrEqual(orderMinimum)) throw new OrderMinimumNotMetException();
         this.state = REVISION_PENDING;
-        yield new ResultWithDomainEvents<>(change, singletonList(new OrderRevisionProposed(orderRevision, change.currentOrderTotal, change.newOrderTotal)));
+        // IC-01: emit API-module event so OrderHistoryService / DeliveryService can consume it
+        Address newAddr = orderRevision.getDeliveryInformation()
+                .map(DeliveryInformation::getDeliveryAddress).orElse(null);
+        yield new ResultWithDomainEvents<>(change,
+                singletonList(new OrderRevisionProposed(change.currentOrderTotal, change.newOrderTotal, newAddr)));
+      }
+      // CC-01: idempotent — OrderService.reviseOrder() already transitioned to REVISION_PENDING;
+      //        the BeginReviseOrderCommand Saga step computes the price change without re-emitting events.
+      case REVISION_PENDING -> {
+        LineItemQuantityChange change = orderLineItems.lineItemQuantityChange(orderRevision);
+        yield new ResultWithDomainEvents<>(change, emptyList());
       }
       default -> throw new UnsupportedStateTransitionException(state);
     };
@@ -140,6 +155,7 @@ public class Order {
 
   public List<OrderDomainEvent> rejectRevision() {
     return switch (state) {
+      // IC-01: keep emptyList for now — no active subscriber yet
       case REVISION_PENDING -> { this.state = APPROVED; yield emptyList(); }
       default -> throw new UnsupportedStateTransitionException(state);
     };
@@ -154,7 +170,10 @@ public class Order {
           orderLineItems.updateLineItems(orderRevision);
         }
         this.state = APPROVED;
-        yield singletonList(new OrderRevised(orderRevision, licd.currentOrderTotal, licd.newOrderTotal));
+        // IC-01: emit API-module event with denormalised new address
+        Address newAddr = orderRevision.getDeliveryInformation()
+                .map(DeliveryInformation::getDeliveryAddress).orElse(null);
+        yield singletonList(new OrderRevised(licd.currentOrderTotal, licd.newOrderTotal, newAddr));
       }
       default -> throw new UnsupportedStateTransitionException(state);
     };

@@ -25,7 +25,8 @@ public class Account extends ReflectiveMutableCommandProcessingAggregate<Account
   }
 
   public List<Event> process(ReverseAuthorizationCommandInternal command) {
-    return Collections.emptyList();
+    // IC-04: emit event so reversal is visible in the Eventuate event log
+    return events(new AccountAuthorizationReversedEvent(command.getConsumerId(), command.getOrderId()));
   }
   public List<Event> process(ReviseAuthorizationCommandInternal command) {
     return Collections.emptyList();

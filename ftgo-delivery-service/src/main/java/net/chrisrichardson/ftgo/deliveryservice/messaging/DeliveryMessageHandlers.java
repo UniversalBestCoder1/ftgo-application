@@ -10,6 +10,7 @@ import net.chrisrichardson.ftgo.kitchenservice.api.events.TicketAcceptedEvent;
 import net.chrisrichardson.ftgo.kitchenservice.api.events.TicketCancelled;
 import net.chrisrichardson.ftgo.orderservice.api.OrderServiceChannels;
 import net.chrisrichardson.ftgo.orderservice.api.events.OrderCreatedEvent;
+import net.chrisrichardson.ftgo.orderservice.api.events.OrderRevised;
 import net.chrisrichardson.ftgo.restaurantservice.RestaurantServiceChannels;
 import net.chrisrichardson.ftgo.restaurantservice.events.RestaurantCreated;
 
@@ -30,6 +31,7 @@ public class DeliveryMessageHandlers {
             .onEvent(TicketCancelled.class, this::handleTicketCancelledEvent)
             .andForAggregateType(OrderServiceChannels.ORDER_EVENT_CHANNEL)
             .onEvent(OrderCreatedEvent.class, this::handleOrderCreatedEvent)
+            .onEvent(OrderRevised.class, this::handleOrderRevisedEvent)  // IC-03
             .andForAggregateType(RestaurantServiceChannels.RESTAURANT_EVENT_CHANNEL)
             .onEvent(RestaurantCreated.class, this::handleRestaurantCreated)
             .build();
@@ -53,6 +55,12 @@ public class DeliveryMessageHandlers {
 
   public void handleTicketCancelledEvent(DomainEventEnvelope<TicketCancelled> dee) {
     deliveryService.cancelDelivery(Long.parseLong(dee.getAggregateId()));
+  }
+
+  /** IC-03: update delivery address when ReviseOrderSaga changes it */
+  public void handleOrderRevisedEvent(DomainEventEnvelope<OrderRevised> dee) {
+    dee.getEvent().newDeliveryAddressOpt().ifPresent(addr ->
+            deliveryService.updateDeliveryAddress(Long.parseLong(dee.getAggregateId()), addr));
   }
 
 

@@ -112,10 +112,38 @@ public class OrderService {
     updateOrder(orderId, Order::noteReversingAuthorization);
   }
 
+  /**
+   * Initiate a cancellation for the given order.
+   *
+   * <p>CC-01 — concurrent-Saga protection: we eagerly transition the Order from
+   * APPROVED to CANCEL_PENDING <em>inside this transaction</em>.  Because Order
+   * carries a JPA {@code @Version} field, two simultaneous calls that both read
+   * the same version will race at commit time; only the first commit succeeds —
+   * the second raises {@link org.springframework.orm.ObjectOptimisticLockingFailureException},
+   * preventing a second CancelOrderSaga from ever being created.
+   *
+   * <p>The CancelOrderSaga's {@code beginCancel} step is therefore a no-op for
+   * this order (Order.cancel() is idempotent when state == CANCEL_PENDING).
+   */
   @Transactional
   public Order cancel(Long orderId) {
     Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+    // CC-01: guard for the sequential wrong-state case (concurrent case handled by @Version)
+    if (order.getState() != net.chrisrichardson.ftgo.orderservice.api.events.OrderState.APPROVED) {
+      throw new OrderNotInRequiredStateException(
+              orderId,
+              net.chrisrichardson.ftgo.orderservice.api.events.OrderState.APPROVED,
+              order.getState());
+    }
+
+    // Eagerly transition APPROVED → CANCEL_PENDING and publish the domain event.
+    // This write increments the @Version, preventing a concurrent cancel() from
+    // also creating a Saga for the same order.
+    List<OrderDomainEvent> events = order.cancel();
+    orderAggregateEventPublisher.publish(order, events);
+
     CancelOrderSagaData sagaData = new CancelOrderSagaData(order.getConsumerId(), orderId, order.getOrderTotal());
     sagaInstanceFactory.create(cancelOrderSaga, sagaData);
     return order;
@@ -150,9 +178,35 @@ public class OrderService {
     updateOrder(orderId, Order::noteCancelled);
   }
 
+  /**
+   * Initiate a revision for the given order.
+   *
+   * <p>CC-01 — concurrent-Saga protection: we eagerly transition the Order from
+   * APPROVED to REVISION_PENDING inside this transaction.  The JPA {@code @Version}
+   * field ensures only one concurrent reviseOrder() call can commit; the other
+   * raises {@link org.springframework.orm.ObjectOptimisticLockingFailureException}.
+   *
+   * <p>The ReviseOrderSaga's {@code beginReviseOrder} step is idempotent: when it
+   * runs, Order.revise() returns the correct LineItemQuantityChange without
+   * re-emitting events (state is already REVISION_PENDING).
+   */
   @Transactional
   public Order reviseOrder(long orderId, OrderRevision orderRevision) {
-    Order order = orderRepository.findById(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+    // CC-01: guard for sequential wrong-state calls
+    if (order.getState() != net.chrisrichardson.ftgo.orderservice.api.events.OrderState.APPROVED) {
+      throw new OrderNotInRequiredStateException(
+              orderId,
+              net.chrisrichardson.ftgo.orderservice.api.events.OrderState.APPROVED,
+              order.getState());
+    }
+
+    // Eagerly transition APPROVED → REVISION_PENDING and publish domain events.
+    ResultWithDomainEvents<LineItemQuantityChange, OrderDomainEvent> result = order.revise(orderRevision);
+    orderAggregateEventPublisher.publish(order, result.events);
+
     ReviseOrderSagaData sagaData = new ReviseOrderSagaData(order.getConsumerId(), orderId, null, orderRevision);
     sagaInstanceFactory.create(reviseOrderSaga, sagaData);
     return order;

@@ -90,4 +90,39 @@ class OrderServiceExtTest {
         given(orderRepo.findById(OrderDetailsMother.ORDER_ID)).willReturn(Optional.empty())
         assertFailsWith<OrderNotFoundException> { svc.cancel(OrderDetailsMother.ORDER_ID) }
     }
+
+    // ── CC-01: state-guard tests ────────────────────────────────────────────
+
+    @Test fun `cancel should publish event and create saga for approved order`() {
+        stubOrder(approvedOrder())
+        svc.cancel(OrderDetailsMother.ORDER_ID)
+        verify(eventPublisher).publish(any(Order::class.java), any())
+        verify(sagaFactory).create(eq(cancelSaga), any(CancelOrderSagaData::class.java))
+    }
+
+    @Test fun `cancel should throw OrderNotInRequiredStateException when order is not APPROVED`() {
+        // Simulate order already in CANCEL_PENDING (e.g. concurrent cancel)
+        val order = approvedOrder().also { it.cancel() /* APPROVED → CANCEL_PENDING */ }
+        stubOrder(order)
+        assertFailsWith<OrderNotInRequiredStateException> {
+            svc.cancel(OrderDetailsMother.ORDER_ID)
+        }
+    }
+
+    @Test fun `reviseOrder should throw OrderNotInRequiredStateException when order is not APPROVED`() {
+        val order = approvedOrder().also { it.cancel() /* APPROVED → CANCEL_PENDING */ }
+        stubOrder(order)
+        val revision = OrderRevision(Optional.empty(), listOf(RevisedOrderLineItem(3, "1")))
+        assertFailsWith<OrderNotInRequiredStateException> {
+            svc.reviseOrder(OrderDetailsMother.ORDER_ID, revision)
+        }
+    }
+
+    @Test fun `reviseOrder should throw when order not found`() {
+        given(orderRepo.findById(OrderDetailsMother.ORDER_ID)).willReturn(Optional.empty())
+        val revision = OrderRevision(Optional.empty(), listOf(RevisedOrderLineItem(3, "1")))
+        assertFailsWith<OrderNotFoundException> {
+            svc.reviseOrder(OrderDetailsMother.ORDER_ID, revision)
+        }
+    }
 }

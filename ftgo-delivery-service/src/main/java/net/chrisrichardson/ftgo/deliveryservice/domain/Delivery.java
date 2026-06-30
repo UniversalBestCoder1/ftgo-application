@@ -86,6 +86,11 @@ public class Delivery {
     return deliveryAddress;
   }
 
+  /** IC-03: allow ReviseOrder saga to update delivery address */
+  public void setDeliveryAddress(Address deliveryAddress) {
+    this.deliveryAddress = deliveryAddress;
+  }
+
   public Address getPickupAddress() {
     return pickupAddress;
   }
