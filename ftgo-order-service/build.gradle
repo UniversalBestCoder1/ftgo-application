@@ -183,6 +183,8 @@ dependencies {
     integrationTestImplementation "net.chrisrichardson.ftgo:ftgo-accounting-service-contracts:unspecified:stubs"
     integrationTestImplementation "net.chrisrichardson.ftgo:ftgo-consumer-service-contracts:unspecified:stubs"
     integrationTestImplementation "net.chrisrichardson.ftgo:ftgo-kitchen-service-contracts:unspecified:stubs"
+    // T-09 ~ T-11: KitchenService 与 OrderService 在同一 JVM 内运行，需要其实现（非仅 API）
+    integrationTestImplementation project(":ftgo-kitchen-service")
     testImplementation "org.springframework.cloud:spring-cloud-contract-wiremock"
     testImplementation "org.springframework.cloud:spring-cloud-starter-contract-stub-runner"
     testImplementation 'io.rest-assured:rest-assured:3.0.6'

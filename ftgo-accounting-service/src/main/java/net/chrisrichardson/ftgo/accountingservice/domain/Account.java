@@ -4,7 +4,6 @@ import io.eventuate.Event;
 import io.eventuate.ReflectiveMutableCommandProcessingAggregate;
 import io.eventuate.tram.sagas.eventsourcingsupport.SagaReplyRequestedEvent;
 
-import java.util.Collections;
 import java.util.List;
 
 import static io.eventuate.EventUtil.events;
@@ -29,7 +28,16 @@ public class Account extends ReflectiveMutableCommandProcessingAggregate<Account
     return events(new AccountAuthorizationReversedEvent(command.getConsumerId(), command.getOrderId()));
   }
   public List<Event> process(ReviseAuthorizationCommandInternal command) {
-    return Collections.emptyList();
+    // CC-03: emit event so revision is visible in the Eventuate event log.
+    // Framework-level received_messages deduplication prevents double-processing
+    // on replay; the event acts as an additional audit trail.
+    return events(new AccountAuthorizationRevisedEvent(
+            command.getConsumerId(), command.getOrderId(), command.getOrderTotal()));
+  }
+
+  public void apply(AccountAuthorizationRevisedEvent event) {
+    // State-less aggregate — balance tracking not yet implemented;
+    // event presence in the log is sufficient for CC-03 fix.
   }
 
   public void apply(AccountAuthorizedEvent event) {

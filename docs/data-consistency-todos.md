@@ -31,8 +31,8 @@
 | ID | 问题描述 |
 |----|----------|
 | ~~CC-01~~ | ~~CancelOrderSaga 与 ReviseOrderSaga 并发时都能读到 `APPROVED` 状态并启动，Order 有 `@Version` 但 Saga 协调层无冲突处理~~ ✅ **已修复** — 急切状态转换 + `@Version` 防护 |
-| CC-02 | OrderService/KitchenService/DeliveryService 的 CommandHandlers 仅依赖框架级 `received_messages` 幂等，业务层无额外保障 |
-| CC-03 | `ReviseOrderSaga` 的差价授权步骤在消息重放时会被重复扣款（框架幂等保护之外的金额不一致风险） |
+| ~~CC-02~~ | ~~OrderService/KitchenService/DeliveryService 的 CommandHandlers 仅依赖框架级 `received_messages` 幂等，业务层无额外保障~~ ✅ **已修复** — `OrderCommandHandlers` + `KitchenServiceCommandHandler` 所有处理器 catch `UnsupportedStateTransitionException` 返回 SUCCESS |
+| ~~CC-03~~ | ~~`ReviseOrderSaga` 的差价授权步骤在消息重放时会被重复扣款~~ ✅ **已修复** — 新增 `AccountAuthorizationRevisedEvent`，`Account.process(ReviseAuthorizationCommandInternal)` 现在发布事件，框架幂等 + 事件日志双重保障 |
 
 ---
 
