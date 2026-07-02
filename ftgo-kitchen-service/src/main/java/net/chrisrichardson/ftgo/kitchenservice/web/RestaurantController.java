@@ -1,7 +1,7 @@
 package net.chrisrichardson.ftgo.kitchenservice.web;
 
 import net.chrisrichardson.ftgo.kitchenservice.domain.Restaurant;
-import net.chrisrichardson.ftgo.kitchenservice.domain.RestaurantRepository;
+import net.chrisrichardson.ftgo.kitchenservice.domain.KitchenRestaurantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RestaurantController {
 
   @Autowired
-  private RestaurantRepository restaurantRepository;
+  private KitchenRestaurantRepository restaurantRepository;
 
   @RequestMapping(path = "/{restaurantId}", method = RequestMethod.GET)
   public ResponseEntity<GetRestaurantResponse> getRestaurant(@PathVariable long restaurantId) {

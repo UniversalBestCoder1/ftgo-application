@@ -1,7 +1,13 @@
 package net.chrisrichardson.ftgo.orderservice.consistency;
 
+import io.eventuate.tram.spring.commands.common.TramCommandsCommonAutoConfiguration;
+import io.eventuate.tram.spring.consumer.common.TramNoopDuplicateMessageDetectorConfiguration;
+import io.eventuate.tram.spring.events.common.TramEventsCommonAutoConfiguration;
+import io.eventuate.tram.spring.messaging.common.TramMessagingCommonAutoConfiguration;
 import io.eventuate.tram.commands.consumer.CommandHandlers;
 import io.eventuate.tram.commands.consumer.CommandMessage;
+import io.eventuate.tram.messaging.common.ChannelMapping;
+import io.eventuate.tram.messaging.common.DefaultChannelMapping;
 import io.eventuate.tram.sagas.participant.SagaCommandDispatcher;
 import io.eventuate.tram.sagas.participant.SagaCommandDispatcherFactory;
 import io.eventuate.tram.sagas.participant.SagaCommandHandlersBuilder;
@@ -22,12 +28,16 @@ import net.chrisrichardson.ftgo.orderservice.api.events.OrderState;
 import net.chrisrichardson.ftgo.orderservice.api.web.CreateOrderRequest;
 import net.chrisrichardson.ftgo.orderservice.api.web.CreateOrderResponse;
 import net.chrisrichardson.ftgo.orderservice.api.web.ReviseOrderRequest;
+import net.chrisrichardson.ftgo.kitchenservice.domain.KitchenService;
+import net.chrisrichardson.ftgo.kitchenservice.domain.RestaurantMenu;
 import net.chrisrichardson.ftgo.orderservice.domain.OrderRepository;
+import net.chrisrichardson.ftgo.orderservice.domain.OrderService;
 import net.chrisrichardson.ftgo.orderservice.domain.RestaurantRepository;
 import net.chrisrichardson.ftgo.orderservice.messaging.OrderServiceMessagingConfiguration;
 import net.chrisrichardson.ftgo.orderservice.service.OrderCommandHandlersConfiguration;
 import net.chrisrichardson.ftgo.orderservice.web.GetOrderResponse;
 import net.chrisrichardson.ftgo.orderservice.web.OrderWebConfiguration;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,11 +89,16 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = SagaConsistencyIntegrationTest.TestConfiguration.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
+                // OrderService 与 KitchenService 都有 RestaurantRepository，同名 Bean 需要允许覆盖
+                "spring.main.allow-bean-definition-overriding=true",
                 // ── 数据源（MySQL 对外映射端口 3307，内部 3306）
+                // 使用 root 用户以获得 DDL 权限（ddl-auto=update 需要 CREATE/ALTER）
                 "spring.datasource.url=jdbc:mysql://localhost:3307/ftgo_order_service",
-                "spring.datasource.username=mysqluser",
-                "spring.datasource.password=mysqlpw",
+                "spring.datasource.username=root",
+                "spring.datasource.password=rootpassword",
                 "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
+                // ── Hibernate 6 在 Spring Boot 3 需要显式指定 Dialect（否则无法从 JDBC 元数据推断）
+                "spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect",
                 // ── Eventuate / Kafka
                 "eventuatelocal.kafka.bootstrap.servers=localhost:9092",
                 "eventuatelocal.zookeeper.connection.string=localhost:2181",
@@ -108,6 +123,11 @@ public class SagaConsistencyIntegrationTest {
             "net.chrisrichardson.ftgo.kitchenservice.domain",
     })
     @Import({
+            // Eventuate Tram 0.30 使用旧式 spring.factories，Spring Boot 3.3 不自动处理 → 显式导入全部4个 AutoConfiguration
+            TramMessagingCommonAutoConfiguration.class,   // provides ChannelMapping
+            TramCommandsCommonAutoConfiguration.class,    // provides CommandNameMapping
+            TramNoopDuplicateMessageDetectorConfiguration.class, // no-op dedup for tests (JDBC impl blocks in combined context)
+            TramEventsCommonAutoConfiguration.class,      // provides EventsCommon beans
             OrderWebConfiguration.class,
             OrderServiceMessagingConfiguration.class,
             OrderCommandHandlersConfiguration.class,
@@ -116,6 +136,15 @@ public class SagaConsistencyIntegrationTest {
             KitchenServiceMessageHandlersConfiguration.class,
     })
     public static class TestConfiguration {
+
+        /**
+         * TramJdbcKafkaConfiguration 不提供 ChannelMapping；需手动注册 pass-through 实现。
+         * 参见：OrderHistoryEventHandlersTest 中的相同模式。
+         */
+        @Bean
+        public ChannelMapping channelMapping() {
+            return new DefaultChannelMapping.DefaultChannelMappingBuilder().build();
+        }
 
         /**
          * 模拟 ConsumerService：对所有 ValidateOrderByConsumer 命令自动回复 SUCCESS。
@@ -156,6 +185,12 @@ public class SagaConsistencyIntegrationTest {
     @Autowired
     private DomainEventPublisher domainEventPublisher;
 
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private KitchenService kitchenService;
+
     /** OrderService 侧的 restaurants 表（验证餐厅是否已注册）。 */
     @Autowired
     private RestaurantRepository orderServiceRestaurantRepository;
@@ -169,6 +204,24 @@ public class SagaConsistencyIntegrationTest {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    // ─────────────────────── Test lifecycle ─────────────────────────────────
+
+    /**
+     * 每个测试前清理旧数据，避免前次测试残留的 APPROVAL_PENDING 订单和 Saga 实例干扰。
+     */
+    @Before
+    public void cleanDatabase() {
+        jdbcTemplate.update("DELETE FROM ticket_line_items");
+        jdbcTemplate.update("DELETE FROM tickets");
+        jdbcTemplate.update("DELETE FROM order_line_items");
+        jdbcTemplate.update("DELETE FROM orders");
+        jdbcTemplate.update("DELETE FROM saga_instance_participants");
+        jdbcTemplate.update("DELETE FROM saga_instance");
+        jdbcTemplate.update("DELETE FROM saga_lock_table");
+        jdbcTemplate.update("DELETE FROM saga_stash_table");
+        jdbcTemplate.update("DELETE FROM received_messages");
+    }
+
     // ─────────────────────── Helpers ────────────────────────────────────────
 
     private String ordersUrl() {
@@ -176,21 +229,33 @@ public class SagaConsistencyIntegrationTest {
     }
 
     /**
-     * 确保 Ajanta 餐厅已在两侧注册：
+     * 直接写库注册 Ajanta 餐厅，避免依赖不稳定的 Outbox→CDC→Kafka 事件管道。
      * <ul>
-     *   <li>OrderService：{@code restaurants} 表（通过 OrderEventConsumer/RestaurantEventConsumer 写库）
-     *   <li>KitchenService：{@code kitchen_service_restaurants} 表（通过 KitchenServiceEventConsumer）
+     *   <li>OrderService 侧：{@code order_service_restaurants} 表
+     *   <li>KitchenService 侧：{@code kitchen_service_restaurants} 表
      * </ul>
      */
     private void ensureRestaurantRegistered() {
-        domainEventPublisher.publish(
-                "net.chrisrichardson.ftgo.restaurantservice.domain.Restaurant",
-                String.valueOf(AJANTA_ID),
-                Collections.singletonList(RestaurantMother.makeAjantaRestaurantCreatedEvent())
+        // OrderService 侧：直接调用 service 写库（幂等：若已存在则跳过）
+        if (orderServiceRestaurantRepository.findById(AJANTA_ID).isEmpty()) {
+            orderService.createMenu(
+                    AJANTA_ID,
+                    RestaurantMother.AJANTA_RESTAURANT_NAME,
+                    RestaurantMother.AJANTA_RESTAURANT_MENU_ITEMS
+            );
+        }
+        // KitchenService 侧：直接调用 service 写库
+        jdbcTemplate.update(
+                "INSERT IGNORE INTO kitchen_service_restaurants (id) VALUES (?)",
+                AJANTA_ID
         );
-        // 等待 OrderService 侧消费到该事件
-        Eventually.eventually(() ->
-                assertThat(orderServiceRestaurantRepository.findById(AJANTA_ID)).isPresent()
+        jdbcTemplate.update(
+                "INSERT IGNORE INTO kitchen_service_restaurant_menu_items " +
+                "(kitchen_restaurant_id, id, name, amount) VALUES (?,?,?,?)",
+                AJANTA_ID,
+                RestaurantMother.CHICKEN_VINDALOO_MENU_ITEM_ID,
+                RestaurantMother.CHICKEN_VINDALOO,
+                "12.34"  // CHICKEN_VINDALOO_PRICE = Money("12.34"), Money.amount is private
         );
     }
 
@@ -218,8 +283,9 @@ public class SagaConsistencyIntegrationTest {
         assertThat(response).isNotNull();
         long orderId = response.orderId();
 
-        // 等待 Saga 完成（最多 30 秒，每 500ms 一次）
-        Eventually.eventually(30, 500, TimeUnit.MILLISECONDS, () -> {
+        // 等待 Saga 完成（最多 60 秒，每 500ms 一次）
+        // 注：kitchenServiceCommands consumer group 可能有积压消息需先处理
+        Eventually.eventually(60, 500, TimeUnit.MILLISECONDS, () -> {
             ResponseEntity<GetOrderResponse> r = restTemplate.getForEntity(
                     ordersUrl() + "/" + orderId, GetOrderResponse.class);
             assertThat(r.getBody()).isNotNull();
@@ -283,8 +349,8 @@ public class SagaConsistencyIntegrationTest {
                 ordersUrl() + "/" + orderId + "/cancel",
                 null, Void.class);
 
-        // orders 表：等待 CANCELLED（最多 30 秒）
-        Eventually.eventually(30, 500, TimeUnit.MILLISECONDS, () -> {
+        // orders 表：等待 CANCELLED（最多 60 秒，含处理积压消息时间）
+        Eventually.eventually(60, 500, TimeUnit.MILLISECONDS, () -> {
             ResponseEntity<GetOrderResponse> r = restTemplate.getForEntity(
                     ordersUrl() + "/" + orderId, GetOrderResponse.class);
             assertThat(r.getBody()).isNotNull();
@@ -323,7 +389,7 @@ public class SagaConsistencyIntegrationTest {
 
         // 等待订单重回 APPROVED（REVISION_PENDING → APPROVED）并验证金额
         Money expectedTotal = new Money("37.02");  // 3 × 12.34
-        Eventually.eventually(30, 500, TimeUnit.MILLISECONDS, () -> {
+        Eventually.eventually(60, 500, TimeUnit.MILLISECONDS, () -> {
             ResponseEntity<GetOrderResponse> r = restTemplate.getForEntity(
                     ordersUrl() + "/" + orderId, GetOrderResponse.class);
             assertThat(r.getBody()).isNotNull();

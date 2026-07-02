@@ -68,7 +68,7 @@ public class KitchenServiceInMemoryIntegrationTest {
   private TestMessageConsumerFactory testMessageConsumerFactory;
 
   @Autowired
-  private RestaurantRepository restaurantRepository;
+  private KitchenRestaurantRepository restaurantRepository;
 
   @Test
   public void shouldCreateTicket() {
